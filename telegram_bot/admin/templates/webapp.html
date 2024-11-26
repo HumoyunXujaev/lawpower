@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Law Bot Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+    <div id="app" class="h-screen flex overflow-hidden" v-cloak>
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+            <div class="h-full px-3 py-4 overflow-y-auto">
+                <div class="flex items-center mb-8">
+                    <img src="/static/logo.svg" class="h-8 w-8 mr-3" alt="Logo">
+                    <span class="text-xl font-semibold dark:text-white">Law Bot Admin</span>
+                </div>
+                
+                <nav class="space-y-2">
+                    <a v-for="item in menuItems" 
+                       :key="item.id"
+                       @click="currentPage = item.id"
+                       :class="[
+                           'flex items-center p-3 rounded-lg cursor-pointer',
+                           currentPage === item.id 
+                               ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' 
+                               : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                       ]">
+                        <i :class="item.icon" class="w-5 h-5 mr-2"></i>
+                        <span>{{ item.name }}</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Header -->
+            <header class="bg-white dark:bg-gray-800 shadow">
+                <div class="mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex items-center justify-between h-16">
+                        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
+                            {{ currentPageTitle }}
+                        </h1>
+                        
+                        <div class="flex items-center space-x-4">
+                            <!-- Search -->
+                            <div class="relative">
+                                <input type="text" 
+                                       v-model="searchQuery"
+                                       @input="handleSearch"
+                                       placeholder="Search..."
+                                       class="w-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                            </div>
+
+                            <!-- Theme Toggle -->
+                            <button @click="toggleTheme" 
+                                    class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'" 
+                                   class="text-gray-500 dark:text-gray-400"></i>
+                            </button>
+
+                            <!-- User Menu -->
+                            <div class="relative">
+                                <button @click="showUserMenu = !showUserMenu"
+                                        class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <img :src="user.avatar" class="h-8 w-8 rounded-full">
+                                    <span class="text-gray-700 dark:text-gray-300">{{ user.name }}</span>
+                                </button>
+                                
+                                <!-- Dropdown Menu -->
+                                <div v-if="showUserMenu"
+                                     class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                                    <a href="#" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                        Profile
+                                    </a>
+                                    <a href="#" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                        Settings
+                                    </a>
+                                    <a href="#" class="block px-4 py-2 text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                        Logout
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
+                <!-- Dashboard -->
+                <div v-if="currentPage === 'dashboard'" class="space-y-6">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div v-for="stat in stats" 
+                             :key="stat.title"
+                             class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                    {{ stat.title }}
+                                </h3>
+                                <i :class="stat.icon" class="text-gray-400 dark:text-gray-500"></i>
+                            </div>
+                            <p class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
+                                {{ stat.value }}
+                            </p>
+                            <div class="mt-2 flex items-center text-sm">
+                                <span :class="stat.trend >= 0 ? 'text-green-500' : 'text-red-500'">
+                                    {{ stat.trend >= 0 ? '↑' : '↓' }} {{ Math.abs(stat.trend) }}%
+                                </span>
+                                <span class="ml-2 text-gray-500 dark:text-gray-400">vs last week</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                                User Growth
+                            </h3>
+                            <canvas ref="userChart" height="300"></canvas>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                                Questions Overview
+                            </h3>
+                            <canvas ref="questionChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Questions -->
+                <div v-if="currentPage === 'questions'" class="space-y-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-medium text-gray-900 dark:text-white">
+                                    Questions
+                                </h2>
+                                <div class="flex space-x-2">
+                                    <button v-for="filter in questionFilters"
+                                            :key="filter.value"
+                                            @click="currentQuestionFilter = filter.value"
+                                            :class="[
+                                                'px-3 py-2 rounded-lg text-sm font-medium',
+                                                currentQuestionFilter === filter.value
+                                                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
+                                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                            ]">
+                                        {{ filter.label }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <div v-for="question in filteredQuestions"
+                                 :key="question.id"
+                                 class="p-6">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <span>{{ question.user.full_name }}</span>
+                                            <span>{{ formatDate(question.created_at) }}</span>
+                                            <span :class="question.language === 'uz' ? 'text-green-500' : 'text-blue-500'">
+                                                {{ question.language.toUpperCase() }}
+                                            </span>
+                                        </div>
+                                        <p class="mt-2 text-gray-900 dark:text-white">
+                                            {{ question.question_text }}
+                                        </p>
+                                        <div v-if="question.answers.length" 
+                                             class="mt-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+                                            <div v-for="answer in question.answers"
+                                                 :key="answer.id"
+                                                 class="mb-2">
+                                                <div class="flex items-center space-x-2">
+                                                    <span class="text-sm font-medium text-gray-900 dark:text-white">
+                                                        Answer
+                                                    </span>
+                                                    <span v-if="answer.is_auto"
+                                                          class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300 rounded">
+                                                        Auto
+                                                    </span>
+                                                </div>
+                                                <p class="mt-1 text-gray-600 dark:text-gray-300">
+                                                    {{ answer.answer_text }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button v-if="!question.answers.length"
+                                                @click="openAnswerModal(question)"
+                                                class="px-3 py-1 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded">
+                                            Answer
+                                        </button>
+                                        <button @click="deleteQuestion(question)"
+                                                class="px-3 py-1 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Consultations -->
+                <div v-if="currentPage === 'consultations'" class="space-y-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-medium text-gray-900 dark:text-white">
+                                    Consultations
+                                </h2>
+                                <div class="flex space-x-2">
+                                    <button v-for="status in consultationStatuses"
+                                            :key="status.value"
+                                            @click="currentConsultationStatus = status.value"
+                                            :class="[
+                                                'px-3 py-2 rounded-lg text-sm font-medium',
+                                                currentConsultationStatus === status.value
+                                                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
+                                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                            ]">
+                                        {{ status.label }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                            User
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                            Amount
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                            Scheduled
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr v-for="consultation in filteredConsultations" :key="consultation.id">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                                        {{ consultation.user.full_name }}
+                                                    </div>
+                                                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                                                        {{ consultation.phone_number }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span :class="getStatusClass(consultation.status)">
+                                                {{ consultation.status }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            {{ formatMoney(consultation.amount) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            {{ consultation.scheduled_time ? formatDate(consultation.scheduled_time) : '-' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button @click="viewConsultation(consultation)"
+                                                    class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">
+                                                View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div v-if="showAnswerModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-lg w-full">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Answer Question
+            </h3>
+            <div class="mb-4">
+                <p class="text-gray-600 dark:text-gray-300">{{ selectedQuestion?.question_text }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Your Answer
+                </label>
+                <textarea v-model="answerText"
+                          rows="4"
+                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Type your answer..."></textarea>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button @click="closeAnswerModal"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    Cancel
+                </button>
+                <button @click="submitAnswer"
+                        :disabled="!answerText"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50">
+                    Submit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    currentPage: 'dashboard',
+                    searchQuery: '',
+                    isDark: false,
+                    showUserMenu: false,
+                    showAnswerModal: false,
+                    answerText: '',
+                    selectedQuestion: null,
+                    user: {
+                        name: 'Admin User',
+                        avatar: 'https://ui-avatars.com/api/?name=Admin+User'
+                    },
+                    menuItems: [
+                        { id: 'dashboard', name: 'Dashboard', icon: 'fas fa-chart-line' },
+                        { id: 'questions', name: 'Questions', icon: 'fas fa-question-circle' },
+                        { id: 'consultations', name: 'Consultations', icon: 'fas fa-calendar' },
+                        { id: 'users', name: 'Users', icon: 'fas fa-users' },
+                        { id: 'settings', name: 'Settings', icon: 'fas fa-cog' }
+                    ],
+                    stats: [
+                        {
+                            title: 'Total Users',
+                            value: '1,234',
+                            trend: 12,
+                            icon: 'fas fa-users'
+                        },
+                        {
+                            title: 'Active Questions',
+                            value: '56',
+                            trend: -5,
+                            icon: 'fas fa-question-circle'
+                        },
+                        {
+                            title: 'Consultations',
+                            value: '89',
+                            trend: 8,
+                            icon: 'fas fa-calendar'
+                        },
+                        {
+                            title: 'Monthly Revenue',
+                            value: '$12,345',
+                            trend: 15,
+                            icon: 'fas fa-dollar-sign'
+                        }
+                    ],
+                    questions: [],
+                    consultations: [],
+                    currentQuestionFilter: 'all',
+                    currentConsultationStatus: 'all',
+                    questionFilters: [
+                        { value: 'all', label: 'All' },
+                        { value: 'unanswered', label: 'Unanswered' },
+                        { value: 'answered', label: 'Answered' },
+                        { value: 'auto', label: 'Auto-answered' }
+                    ],
+                    consultationStatuses: [
+                        { value: 'all', label: 'All' },
+                        { value: 'pending', label: 'Pending' },
+                        { value: 'scheduled', label: 'Scheduled' },
+                        { value: 'completed', label: 'Completed' },
+                        { value: 'cancelled', label: 'Cancelled' }
+                    ]
+                }
+            },
+            computed: {
+                currentPageTitle() {
+                    const page = this.menuItems.find(item => item.id === this.currentPage)
+                    return page ? page.name : ''
+                },
+                filteredQuestions() {
+                    if (this.currentQuestionFilter === 'all') {
+                        return this.questions
+                    }
+                    return this.questions.filter(q => {
+                        switch(this.currentQuestionFilter) {
+                            case 'unanswered':
+                                return !q.answers.length
+                            case 'answered':
+                                return q.answers.length && !q.answers.some(a => a.is_auto)
+                            case 'auto':
+                                return q.answers.some(a => a.is_auto)
+                        }
+                    })
+                },
+                filteredConsultations() {
+                    if (this.currentConsultationStatus === 'all') {
+                        return this.consultations
+                    }
+                    return this.consultations.filter(c => 
+                        c.status.toLowerCase() === this.currentConsultationStatus
+                    )
+                }
+            },
+            methods: {
+                async fetchData() {
+                    try {
+                        const [questions, consultations] = await Promise.all([
+                            fetch('/api/admin/questions').then(r => r.json()),
+                            fetch('/api/admin/consultations').then(r => r.json())
+                        ])
+                        this.questions = questions.items
+                        this.consultations = consultations.items
+                    } catch (error) {
+                        console.error('Error fetching data:', error)
+                    }
+                },
+                formatDate(date) {
+                    return moment(date).format('DD.MM.YYYY HH:mm')
+                },
+                formatMoney(amount) {
+                    return new Intl.NumberFormat('uz-UZ', {
+                        style: 'currency',
+                        currency: 'UZS'
+                    }).format(amount)
+                },
+                handleSearch() {
+                    clearTimeout(this.searchTimeout)
+                    this.searchTimeout = setTimeout(async () => {
+                        try {
+                            const response = await fetch(
+                                `/api/admin/search?q=${this.searchQuery}&type=${this.currentPage}`
+                            )
+                            const data = await response.json()
+                            if (this.currentPage === 'questions') {
+                                this.questions = data.items
+                            } else if (this.currentPage === 'consultations') {
+                                this.consultations = data.items
+                            }
+                        } catch (error) {
+                            console.error('Search error:', error)
+                        }
+                    }, 300)
+                },
+                toggleTheme() {
+                    this.isDark = !this.isDark
+                    document.documentElement.classList.toggle('dark', this.isDark)
+                    localStorage.setItem('theme', this.isDark ? 'dark' : 'light')
+                },
+                openAnswerModal(question) {
+                    this.selectedQuestion = question
+                    this.answerText = ''
+                    this.showAnswerModal = true
+                },
+                closeAnswerModal() {
+                    this.showAnswerModal = false
+                    this.selectedQuestion = null
+                    this.answerText = ''
+                },
+                async submitAnswer() {
+                    try {
+                        const response = await fetch(
+                            `/api/admin/questions/${this.selectedQuestion.id}/answer`,
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    answer_text: this.answerText
+                                })
+                            }
+                        )
+                        if (response.ok) {
+                            await this.fetchData()
+                            this.closeAnswerModal()
+                        }
+                    } catch (error) {
+                        console.error('Error submitting answer:', error)
+                    }
+                },
+                getStatusClass(status) {
+                    const classes = {
+                        'PENDING': 'bg-yellow-100 text-yellow-800',
+                        'PAID': 'bg-green-100 text-green-800',
+                        'SCHEDULED': 'bg-blue-100 text-blue-800',
+                        'COMPLETED': 'bg-gray-100 text-gray-800',
+                        'CANCELLED': 'bg-red-100 text-red-800'
+                    }
+                    return `px-2 py-1 text-xs font-medium rounded-full ${classes[status] || ''}`
+                },
+                initCharts() {
+                    // User Growth Chart
+                    const userCtx = this.$refs.userChart.getContext('2d')
+                    new Chart(userCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                            datasets: [{
+                                label: 'New Users',
+                                data: [65, 78, 90, 85, 99, 112],
+                                borderColor: '#3B82F6',
+                                tension: 0.3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    })
+
+                    // Questions Chart
+                    const questionCtx = this.$refs.questionChart.getContext('2d')
+                    new Chart(questionCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Answered', 'Unanswered', 'Auto'],
+                            datasets: [{
+                                data: [45, 25, 30],
+                                backgroundColor: [
+                                    '#10B981',
+                                    '#EF4444',
+                                    '#F59E0B'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    })
+                }
+            },
+            mounted() {
+                this.isDark = localStorage.getItem('theme') === 'dark'
+                document.documentElement.classList.toggle('dark', this.isDark)
+                
+                this.fetchData()
+                this.initCharts()
+
+                // Set up auto-refresh
+                setInterval(this.fetchData, 30000) // Refresh every 30 seconds
+            }
+        }).mount('#app')
+    </script>
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</body>
+</html>

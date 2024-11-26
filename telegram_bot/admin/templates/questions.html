@@ -1,0 +1,321 @@
+<!-- File: /telegram_bot/admin/templates/questions.html -->
+{% extends "base.html" %}
+
+{% block title %}Questions - Law Bot Admin{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold text-gray-900">Questions</h1>
+
+        <!-- Filters -->
+        <div class="flex space-x-4">
+            <input type="text"
+                   placeholder="Search questions..."
+                   class="rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                   v-model="search">
+
+            <select class="rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                    v-model="status">
+                <option value="">All Status</option>
+                <option value="unanswered">Unanswered</option>
+                <option value="answered">Answered</option>
+                <option value="auto">Auto-answered</option>
+            </select>
+
+            <select class="rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                    v-model="category">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.value }}">{{ cat.label }}</option>
+                {% endfor %}
+            </select>
+
+            <select class="rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                    v-model="language">
+                <option value="">All Languages</option>
+                <option value="uz">Uzbek</option>
+                <option value="ru">Russian</option>
+            <!-- File: /telegram_bot/admin/templates/questions.html (продолжение) -->
+        </select>
+    </div>
+</div>
+
+<!-- Questions List -->
+<div class="space-y-6">
+    {% for question in questions %}
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="flex justify-between items-start">
+            <!-- Question Info -->
+            <div class="space-y-4 flex-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-500">{{ question.user.full_name }}</span>
+                    <span class="text-sm text-gray-500">•</span>
+                    <span class="text-sm text-gray-500">{{ question.created_at | timeago }}</span>
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                               {% if question.language == 'uz' %}bg-green-100 text-green-800
+                               {% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ question.language | upper }}
+                    </span>
+                    {% if question.category %}
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        {{ question.category }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <p class="text-gray-900 text-lg">{{ question.text }}</p>
+
+                <!-- Answers -->
+                {% if question.answers %}
+                <div class="mt-4 pl-4 border-l-4 border-indigo-500 space-y-4">
+                    {% for answer in question.answers %}
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm font-medium text-gray-900">Answer</span>
+                            {% if answer.is_auto %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                Auto
+                            </span>
+                            {% endif %}
+                            <span class="text-sm text-gray-500">{{ answer.created_at | timeago }}</span>
+                        </div>
+                        <p class="text-gray-700">{{ answer.text }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Actions -->
+            <div class="ml-6 flex flex-col space-y-2">
+                {% if not question.answers %}
+                <button @click="answerQuestion({{ question.id }})"
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-reply mr-2"></i>
+                    Answer
+                </button>
+                {% endif %}
+
+                <button @click="tryAutoAnswer({{ question.id }})"
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <i class="fas fa-robot mr-2"></i>
+                    Auto Answer
+                </button>
+
+                <button @click="deleteQuestion({{ question.id }})"
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    <i class="fas fa-trash mr-2"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+<div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg shadow">
+    <div class="flex-1 flex justify-between sm:hidden">
+        {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}"
+           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Previous
+        </a>
+        {% endif %}
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}"
+           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Next
+        </a>
+        {% endif %}
+    </div>
+    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm text-gray-700">
+                Showing
+                <span class="font-medium">{{ pagination.start }}</span>
+                to
+                <span class="font-medium">{{ pagination.end }}</span>
+                of
+                <span class="font-medium">{{ pagination.total }}</span>
+                results
+            </p>
+        </div>
+        <div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                {% for page in pagination.iter_pages() %}
+                {% if page %}
+                <a href="?page={{ page }}"
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium
+                          {% if page == pagination.page %}text-indigo-600 border-indigo-500{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                    {{ page }}
+                </a>
+                {% else %}
+                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                    ...
+                </span>
+                {% endif %}
+                {% endfor %}
+            </nav>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Answer Modal -->
+<div v-if="showAnswerModal" class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+<div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+
+    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+                <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        Answer Question
+                    </h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500 mb-4">{{ selectedQuestion.text }}</p>
+                        <textarea v-model="answerText"
+                                rows="4"
+                                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                placeholder="Type your answer..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button @click="submitAnswer"
+                    type="button"
+                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                Submit
+            </button>
+            <button @click="showAnswerModal = false"
+                    type="button"
+                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+new Vue({
+el: '#app',
+data: {
+    search: '',
+    status: '',
+    category: '',
+    language: '',
+    showAnswerModal: false,
+    selectedQuestion: null,
+    answerText: '',
+    questions: {{ questions | tojson }},
+    pagination: {{ pagination | tojson }}
+},
+methods: {
+    async answerQuestion(questionId) {
+        this.selectedQuestion = this.questions.find(q => q.id === questionId);
+        this.showAnswerModal = true;
+    },
+    async submitAnswer() {
+        try {
+            const response = await fetch(`/api/admin/questions/${this.selectedQuestion.id}/answer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: this.answerText
+                })
+            });
+
+            if (response.ok) {
+                // Reload questions
+                window.location.reload();
+            } else {
+                alert('Failed to submit answer');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to submit answer');
+        }
+    },
+    async tryAutoAnswer(questionId) {
+        try {
+            const response = await fetch(`/api/admin/questions/${questionId}/auto-answer`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to generate auto answer');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to generate auto answer');
+        }
+    },
+    async deleteQuestion(questionId) {
+        if (confirm('Are you sure you want to delete this question?')) {
+            try {
+                const response = await fetch(`/api/admin/questions/${questionId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to delete question');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to delete question');
+            }
+        }
+    }
+},
+watch: {
+    search: _.debounce(function(val) {
+        // Implement search
+        this.fetchQuestions();
+    }, 300),
+    status() {
+        this.fetchQuestions();
+    },
+    category() {
+        this.fetchQuestions();
+    },
+    language() {
+        this.fetchQuestions();
+    }
+},
+methods: {
+    async fetchQuestions() {
+        try {
+            const params = new URLSearchParams({
+                search: this.search,
+                status: this.status,
+                category: this.category,
+                language: this.language
+            });
+
+            const response = await fetch(`/api/admin/questions?${params}`);
+            const data = await response.json();
+
+            this.questions = data.items;
+            this.pagination = data.pagination;
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+}
+});
+</script>
+{% endblock %}

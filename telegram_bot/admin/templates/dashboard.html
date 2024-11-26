@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Law Bot Admin{% endblock %}
+
+{% block content %}
+<!-- File: /telegram_bot/admin/templates/dashboard.html (продолжение) -->
+<div class="space-y-6">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Users Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-gray-500 text-sm font-medium">Total Users</h3>
+                <i class="fas fa-users text-indigo-500"></i>
+            </div>
+            <p class="mt-2 text-3xl font-semibold">{{ stats.users.total }}</p>
+            <div class="mt-2 flex items-center text-sm">
+                <span class="text-green-500">↑ {{ stats.users.new_week }}</span>
+                <span class="ml-2 text-gray-500">vs last week</span>
+            </div>
+        </div>
+
+        <!-- Questions Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-gray-500 text-sm font-medium">Questions</h3>
+                <i class="fas fa-question-circle text-indigo-500"></i>
+            </div>
+            <p class="mt-2 text-3xl font-semibold">{{ stats.questions.total }}</p>
+            <div class="mt-2 flex items-center text-sm">
+                <span class="text-yellow-500">{{ stats.questions.unanswered }}</span>
+                <span class="ml-2 text-gray-500">unanswered</span>
+            </div>
+        </div>
+
+        <!-- Consultations Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-gray-500 text-sm font-medium">Consultations</h3>
+                <i class="fas fa-calendar text-indigo-500"></i>
+            </div>
+            <p class="mt-2 text-3xl font-semibold">{{ stats.consultations.total }}</p>
+            <div class="mt-2 flex items-center text-sm">
+                <span class="text-blue-500">{{ stats.consultations.pending }}</span>
+                <span class="ml-2 text-gray-500">pending</span>
+            </div>
+        </div>
+
+        <!-- Revenue Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-gray-500 text-sm font-medium">Revenue</h3>
+                <i class="fas fa-dollar-sign text-indigo-500"></i>
+            </div>
+            <p class="mt-2 text-3xl font-semibold">{{ stats.payments.amount | money }}</p>
+            <div class="mt-2 flex items-center text-sm">
+                <span class="text-green-500">↑ {{ stats.payments.growth }}%</span>
+                <span class="ml-2 text-gray-500">vs last month</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Users Growth Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900">User Growth</h3>
+            <canvas id="usersChart" height="300"></canvas>
+        </div>
+
+        <!-- Revenue Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900">Revenue</h3>
+            <canvas id="revenueChart" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
+        <div class="space-y-4">
+            {% for activity in recent_activity %}
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <i class="fas fa-{{ activity.icon }} text-indigo-500"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-900">{{ activity.text }}</p>
+                    <p class="text-sm text-gray-500">{{ activity.time | timeago }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Users Growth Chart
+const usersCtx = document.getElementById('usersChart').getContext('2d');
+new Chart(usersCtx, {
+    type: 'line',
+    data: {
+        labels: {{ users_chart.labels | tojson }},
+        datasets: [{
+            label: 'New Users',
+            data: {{ users_chart.data | tojson }},
+            borderColor: '#6366F1',
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+// Revenue Chart
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+new Chart(revenueCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ revenue_chart.labels | tojson }},
+        datasets: [{
+            label: 'Revenue',
+            data: {{ revenue_chart.data | tojson }},
+            backgroundColor: '#6366F1'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+</script>
+{% endblock %}
+

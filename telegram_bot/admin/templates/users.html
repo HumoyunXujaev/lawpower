@@ -1,0 +1,169 @@
+<!-- File: /telegram_bot/admin/templates/users.html -->
+{% extends "base.html" %}
+
+{% block title %}Users - Law Bot Admin{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold text-gray-900">Users</h1>
+        
+        <!-- Search & Filters -->
+        <div class="flex space-x-4">
+            <input type="text" 
+                   placeholder="Search users..."
+                   class="rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                   v-model="search">
+                   
+            <select class="rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                    v-model="language">
+                <option value="">All Languages</option>
+                <option value="uz">Uzbek</option>
+                <option value="ru">Russian</option>
+            </select>
+            
+            <select class="rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                    v-model="status">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="blocked">Blocked</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white shadow rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        User
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Language
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Joined
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for user in users %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ user.full_name }}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    @{{ user.username }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                   {% if user.language == 'uz' %}bg-green-100 text-green-800
+                                   {% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ user.language | upper }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                   {% if user.is_blocked %}bg-red-100 text-red-800
+                                   {% else %}bg-green-100 text-green-800{% endif %}">
+                            {{ 'Blocked' if user.is_blocked else 'Active' }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ user.created_at | date }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button class="text-indigo-600 hover:text-indigo-900"
+                                @click="viewUser({{ user.id }})">
+                            View
+                        </button>
+                        <button class="ml-3 text-red-600 hover:text-red-900"
+                                @click="toggleBlock({{ user.id }})">
+                            {{ 'Unblock' if user.is_blocked else 'Block' }}
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="flex-1 flex justify-between sm:hidden">
+            <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:text-gray-500">
+                Previous
+            </button>
+            <button class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:text-gray-500">
+                Next
+            </button>
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Showing
+                    <span class="font-medium">{{ pagination.start }}</span>
+                    to
+                    <span class="font-medium">{{ pagination.end }}</span>
+                    of
+                    <span class="font-medium">{{ pagination.total }}</span>
+                    results
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                    {% for page in pagination.pages %}
+                    <a href="?page={{ page }}"
+                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50
+                              {% if page == pagination.current %}text-indigo-600 border-indigo-500{% endif %}">
+                        {{ page }}
+                    </a>
+                    {% endfor %}
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+new Vue({
+    el: '#app',
+    data: {
+        search: '',
+        language: '',
+        status: '',
+        users: {{ users | tojson }},
+        pagination: {{ pagination | tojson }}
+    },
+    methods: {
+        async viewUser(userId) {
+            // Implement user view
+        },
+        async toggleBlock(userId) {
+            // Implement user blocking
+        }
+    },
+    watch: {
+        search: _.debounce(function(val) {
+            // Implement search
+        }, 300)
+    }
+});
+</script>
+{% endblock %}

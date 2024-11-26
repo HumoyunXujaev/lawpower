@@ -1,0 +1,81 @@
+<!-- File: /telegram_bot/admin/templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Law Bot Admin{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-indigo-700 text-white">
+            <div class="p-4">
+                <h1 class="text-2xl font-bold">Law Bot Admin</h1>
+            </div>
+            
+            <nav class="mt-8">
+                <a href="{{ url_for('admin.dashboard') }}" 
+                   class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-600
+                          {% if request.endpoint == 'admin.dashboard' %}bg-indigo-800{% endif %}">
+                    <i class="fas fa-home mr-2"></i> Dashboard
+                </a>
+                
+                <a href="{{ url_for('admin.users') }}"
+                   class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-600
+                          {% if request.endpoint == 'admin.users' %}bg-indigo-800{% endif %}">
+                    <i class="fas fa-users mr-2"></i> Users
+                </a>
+                
+                <a href="{{ url_for('admin.questions') }}"
+                   class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-600
+                          {% if request.endpoint == 'admin.questions' %}bg-indigo-800{% endif %}">
+                    <i class="fas fa-question-circle mr-2"></i> Questions
+                </a>
+                
+                <a href="{{ url_for('admin.consultations') }}"
+                   class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-600
+                          {% if request.endpoint == 'admin.consultations' %}bg-indigo-800{% endif %}">
+                    <i class="fas fa-calendar mr-2"></i> Consultations
+                </a>
+                
+                <a href="{{ url_for('admin.payments') }}"
+                   class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-600
+                          {% if request.endpoint == 'admin.payments' %}bg-indigo-800{% endif %}">
+                    <i class="fas fa-credit-card mr-2"></i> Payments
+                </a>
+                
+                <a href="{{ url_for('admin.analytics') }}"
+                   class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-600
+                          {% if request.endpoint == 'admin.analytics' %}bg-indigo-800{% endif %}">
+                    <i class="fas fa-chart-line mr-2"></i> Analytics
+                </a>
+                
+                <a href="{{ url_for('admin.settings') }}"
+                   class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-600
+                          {% if request.endpoint == 'admin.settings' %}bg-indigo-800{% endif %}">
+                    <i class="fas fa-cog mr-2"></i> Settings
+                </a>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 p-8">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <!-- JavaScript -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+
